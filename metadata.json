@@ -1,0 +1,7 @@
+{
+  "name": "Omni-Cosmos Horoscope",
+  "description": "A full-spectrum astrological and spiritual guide powered by Gemini, integrating multiple belief systems with generated art and live voice interaction.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
