@@ -33,14 +33,44 @@
         </div>
       </main>
     </div>
-    <!-- Fallback: if React hasn't mounted after 10s, show a direct link -->
+    <!-- Recovery: stale-cached bundle auto-retry, then actionable fallback -->
     <script>
-      setTimeout(function() {
+      (function () {
+        var RETRY_FLAG = 'omni_retry_done';
         var fb = document.getElementById('loading-fallback');
-        if (fb) {
-          fb.innerHTML = '<div><h1 style="margin:0 0 0.75rem 0;font-family:serif;">Omni-Cosmos</h1><p style="margin:0 0 1rem;color:#94a3b8;">App is taking too long to load.</p><a href="https://aaroncrume-techandtonic.github.io/OmniCosmosV2.1/" style="display:inline-block;padding:0.6rem 1.5rem;background:#0e7490;color:#fff;border-radius:999px;text-decoration:none;font-weight:700;">Open in Full Tab</a></div>';
+
+        function hasMounted() {
+          return !document.getElementById('loading-fallback');
         }
-      }, 10000);
-    </script>
+
+        function showRecoveryPanel() {
+          var node = document.getElementById('loading-fallback');
+          if (!node) return;
+          node.innerHTML =
+            '<div>' +
+            '<h1 style="margin:0 0 0.75rem 0;font-family:serif;">Omni-Cosmos</h1>' +
+            '<p style="margin:0 0 1rem;color:#94a3b8;">The app did not finish loading.</p>' +
+            '<button onclick="localStorage.removeItem(\'' + RETRY_FLAG + '\');location.reload()" style="display:inline-block;margin-right:0.55rem;padding:0.6rem 1.15rem;background:#0e7490;color:#fff;border:none;border-radius:999px;cursor:pointer;font-weight:700;">Hard Refresh</button>' +
+            '<a href="https://aaroncrume-techandtonic.github.io/OmniCosmosV2.1/?v=' + Date.now() + '" style="display:inline-block;padding:0.6rem 1.15rem;background:#1d4ed8;color:#fff;border-radius:999px;text-decoration:none;font-weight:700;">Open Fresh Copy</a>' +
+            '</div>';
+        }
+
+        if (!fb) return;
+
+        window.setTimeout(function () {
+          if (hasMounted()) return;
+
+          if (!localStorage.getItem(RETRY_FLAG)) {
+            localStorage.setItem(RETRY_FLAG, '1');
+            var joiner = location.search ? '&' : '?';
+            location.replace(location.pathname + location.search + joiner + 'v=' + Date.now());
+            return;
+          }
+
+          showRecoveryPanel();
+        }, 4500);
+      })();
+    </script>
+
   </body>
 </html>
