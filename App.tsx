@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Component } from 'react';
 import StarField from './components/StarField';
 import InputForm from './components/InputForm';
 import HoroscopeView from './components/HoroscopeView';
@@ -194,4 +194,40 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
+interface ErrorBoundaryState { hasError: boolean; error: string }
+class ErrorBoundary extends Component<{ children: React.ReactNode }, ErrorBoundaryState> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: '' };
+  }
+  static getDerivedStateFromError(error: unknown) {
+    return { hasError: true, error: String(error) };
+  }
+  componentDidCatch(error: unknown, info: React.ErrorInfo) {
+    console.error('OmniCosmos render error:', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', background: '#050510', color: '#e2e8f0', textAlign: 'center', flexDirection: 'column', gap: '1rem' }}>
+          <h1 style={{ fontFamily: 'serif', margin: 0 }}>Omni-Cosmos</h1>
+          <p style={{ color: '#94a3b8', margin: 0 }}>An unexpected error occurred. Please refresh the page.</p>
+          <details style={{ color: '#64748b', fontSize: '0.75rem', maxWidth: '480px', wordBreak: 'break-all' }}>
+            <summary>Error details</summary>
+            <pre style={{ textAlign: 'left', marginTop: '0.5rem' }}>{this.state.error}</pre>
+          </details>
+          <button onClick={() => window.location.reload()} style={{ marginTop: '0.5rem', padding: '0.5rem 1.5rem', background: '#0e7490', color: '#fff', border: 'none', borderRadius: '999px', cursor: 'pointer', fontWeight: 700 }}>Refresh</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const AppWithBoundary: React.FC = () => (
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);
+
+export default AppWithBoundary;
