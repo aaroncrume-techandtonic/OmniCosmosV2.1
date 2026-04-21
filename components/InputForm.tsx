@@ -30,9 +30,6 @@ const InputForm: React.FC<Props> = ({ onSubmit, onOpenHistory, isLoading }) => {
     }
   }, []);
 
-  // Your specific Formspree ID
-  const FORMSPREE_ID = "mdaloedj"; 
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const newData = { ...formData, [e.target.name]: e.target.value };
     setFormData(newData);
@@ -42,23 +39,6 @@ const InputForm: React.FC<Props> = ({ onSubmit, onOpenHistory, isLoading }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Silently subscribe user if email is provided (Fire and Forget)
-    if (formData.email) {
-        fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                email: formData.email,
-                name: formData.name,
-                birthDate: formData.birthDate,
-                message: "New user from Omni-Cosmos App"
-            })
-        }).catch(err => console.warn("Email subscription failed silently", err));
-    }
 
     onSubmit(formData);
   };

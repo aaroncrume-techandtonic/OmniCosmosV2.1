@@ -28,15 +28,6 @@ const App: React.FC = () => {
   }, []);
 
   const handleFormSubmit = async (data: UserData) => {
-    // Check for API key selection for Pro Image/Veo models
-    if (window.aistudio) {
-      const hasKey = await window.aistudio.hasSelectedApiKey();
-      if (!hasKey) {
-        await window.aistudio.openSelectKey();
-        // Proceeding after opening the dialog as per guidelines
-      }
-    }
-
     setCurrentUserData(data); // Store user data for saving later
     setAppState(AppState.GENERATING);
     try {
