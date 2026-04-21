@@ -42,7 +42,9 @@ const App: React.FC = () => {
         generateHoroscopeImage(
           `Abstract mashup of ${data.focusArea}, zodiac, tarot, totem. ${textResult.summary}`, 
           data.name,
-          data.imageSize || "1K"
+          data.imageSize || "1K",
+          data.birthDate,
+          data.birthTime,
         ),
         generateTTS(speechText)
       ]);
