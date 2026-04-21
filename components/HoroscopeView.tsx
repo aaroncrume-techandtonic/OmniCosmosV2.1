@@ -164,6 +164,10 @@ const HoroscopeView: React.FC<Props> = ({
     if (audioRef.current) {
       if (audioRef.current.paused) {
         await audioRef.current.play();
+        // Resume ambient if not in void mode
+        if (ambientServiceRef.current && ambientMode !== 'void') {
+          ambientServiceRef.current.play(ambientMode);
+        }
       } else {
         audioRef.current.pause();
       }
@@ -175,6 +179,10 @@ const HoroscopeView: React.FC<Props> = ({
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
       setIsPlaying(false);
+    }
+    // Stop ambient sound too
+    if (ambientServiceRef.current) {
+      ambientServiceRef.current.stop();
     }
   };
 
