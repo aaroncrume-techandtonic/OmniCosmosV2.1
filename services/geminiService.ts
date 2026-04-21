@@ -93,6 +93,16 @@ const loadImage = (src: string): Promise<HTMLImageElement> => {
   });
 };
 
+const getSupportedVideoMimeType = (): string => {
+  const options = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
+  for (const option of options) {
+    if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(option)) {
+      return option;
+    }
+  }
+  return "video/webm";
+};
+
 export const generateHoroscopeText = async (
   name: string,
   birthDate: string,
@@ -241,9 +251,105 @@ export const editHoroscopeImage = async (base64Image: string, instruction: strin
 };
 
 export const generateHoroscopeVideo = async (base64Image: string, prompt: string): Promise<string> => {
-  void base64Image;
-  void prompt;
-  throw new Error("Animation is unavailable in local mode.");
+  if (typeof MediaRecorder === "undefined") {
+    throw new Error("This browser does not support local video recording.");
+  }
+
+  const source = await loadImage(`data:image/png;base64,${base64Image}`);
+  const width = 1280;
+  const height = 720;
+  const fps = 24;
+  const durationMs = 5200;
+  const seed = hashString(`${prompt}|${source.width}|${source.height}`);
+  const rand = seededRandom(seed);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas unavailable");
+
+  const particles = Array.from({ length: 120 }, () => ({
+    x: rand() * width,
+    y: rand() * height,
+    r: 0.6 + rand() * 2.1,
+    drift: 0.1 + rand() * 0.7,
+    alpha: 0.25 + rand() * 0.65,
+  }));
+
+  const stream = canvas.captureStream(fps);
+  const mimeType = getSupportedVideoMimeType();
+  const recorder = new MediaRecorder(stream, { mimeType });
+  const chunks: BlobPart[] = [];
+
+  const videoReady = new Promise<string>((resolve, reject) => {
+    recorder.ondataavailable = (event) => {
+      if (event.data && event.data.size > 0) {
+        chunks.push(event.data);
+      }
+    };
+
+    recorder.onerror = () => {
+      reject(new Error("Local animation recording failed."));
+    };
+
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: mimeType });
+      resolve(URL.createObjectURL(blob));
+    };
+  });
+
+  recorder.start(200);
+
+  try {
+    const frameInterval = 1000 / fps;
+    let elapsed = 0;
+
+    while (elapsed <= durationMs) {
+      const p = elapsed / durationMs;
+
+      // Subtle cinematic pan + zoom over the generated image.
+      const zoom = 1.08 + 0.05 * Math.sin(p * Math.PI * 2);
+      const baseScale = Math.max(width / source.width, height / source.height);
+      const scale = baseScale * zoom;
+      const drawW = source.width * scale;
+      const drawH = source.height * scale;
+      const panX = Math.sin(p * Math.PI * 2) * 22;
+      const panY = Math.cos(p * Math.PI * 1.6) * 16;
+      const dx = (width - drawW) / 2 + panX;
+      const dy = (height - drawH) / 2 + panY;
+
+      ctx.clearRect(0, 0, width, height);
+      ctx.drawImage(source, dx, dy, drawW, drawH);
+
+      const vignette = ctx.createRadialGradient(width * 0.5, height * 0.5, width * 0.25, width * 0.5, height * 0.5, width * 0.8);
+      vignette.addColorStop(0, "rgba(3, 7, 18, 0)");
+      vignette.addColorStop(1, "rgba(3, 7, 18, 0.58)");
+      ctx.fillStyle = vignette;
+      ctx.fillRect(0, 0, width, height);
+
+      for (const particle of particles) {
+        const y = (particle.y + elapsed * 0.02 * particle.drift) % height;
+        const pulse = 0.6 + 0.4 * Math.sin((elapsed * 0.003) + particle.x * 0.02);
+        ctx.beginPath();
+        ctx.arc(particle.x, y, particle.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(220, 245, 255, ${(particle.alpha * pulse).toFixed(3)})`;
+        ctx.fill();
+      }
+
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, frameInterval);
+      });
+      elapsed += frameInterval;
+    }
+  } finally {
+    if (recorder.state !== "inactive") {
+      recorder.stop();
+    }
+    stream.getTracks().forEach((track) => track.stop());
+  }
+
+  return await videoReady;
 };
 
 export const generateTTS = async (text: string): Promise<Uint8Array> => {
