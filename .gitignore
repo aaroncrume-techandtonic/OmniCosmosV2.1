@@ -98,3 +98,5 @@ public
 
 # Vite build output
 dist/
+.vercel
+.env*
