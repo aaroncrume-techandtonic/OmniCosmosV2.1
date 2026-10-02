@@ -71,6 +71,8 @@ const HoroscopeView: React.FC<Props> = ({
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ambientServiceRef = useRef<AmbientService | null>(null);
@@ -101,6 +103,9 @@ const HoroscopeView: React.FC<Props> = ({
       setIsPlaying(true);
       setAutoPlayBlocked(false);
     };
+    audio.onloadedmetadata = () => setDuration(audio.duration || 0);
+    audio.ondurationchange = () => setDuration(audio.duration || 0);
+    audio.ontimeupdate = () => setCurrentTime(audio.currentTime);
     
     audioRef.current = audio;
     
@@ -122,6 +127,8 @@ const HoroscopeView: React.FC<Props> = ({
       if (src && src.startsWith('blob:')) {
         URL.revokeObjectURL(src);
       }
+      setCurrentTime(0);
+      setDuration(0);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preloadedAudio, externalAudioUrl]); // Exclude narrationVolume to prevent restart on volume change
@@ -190,6 +197,20 @@ const HoroscopeView: React.FC<Props> = ({
     if (audioRef.current) {
       audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 15);
     }
+  };
+
+  const handleSeek = (value: number) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = value;
+    }
+    setCurrentTime(value);
+  };
+
+  const formatTime = (seconds: number) => {
+    if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   // --- Download Handlers ---
@@ -490,7 +511,25 @@ const HoroscopeView: React.FC<Props> = ({
                  </div>
               </div>
 
-              
+              {/* Playback Progress / Seek Bar */}
+              {hasAudioSource && (
+                <div className="flex items-center gap-3 mt-4">
+                  <span className="text-[10px] tabular-nums text-slate-400 w-9 text-right">{formatTime(currentTime)}</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max={duration || 0}
+                    step="0.1"
+                    value={Math.min(currentTime, duration || 0)}
+                    onChange={(e) => handleSeek(parseFloat(e.target.value))}
+                    disabled={!duration}
+                    className="flex-1 h-1 accent-cyan-400 cursor-pointer disabled:cursor-not-allowed"
+                    aria-label="Seek audio position"
+                  />
+                  <span className="text-[10px] tabular-nums text-slate-400 w-9">{formatTime(duration)}</span>
+                </div>
+              )}
+
               {/* Downloads Row */}
               <div className="flex gap-4 mt-3 justify-center md:justify-start">
                   {hasAudioSource && (
